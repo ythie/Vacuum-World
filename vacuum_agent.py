@@ -49,11 +49,10 @@ class ContinuumWorld:
         print()
 
 
-class SimpleReflexAgent:
+class Agent:
     '''
-    This class is for the functions of the vacuum agent.
-    It contains functions for verifying that it does not cross boundary and for
-    cleaning the world.
+    This class is for the basic description of the vacuum agent.
+    It contains functions for verifying that it does not cross boundary.
     '''
 
     def __init__(self, position=[0, 0], max_moves=30, grid_size=0, dirt=0):
@@ -98,6 +97,15 @@ class SimpleReflexAgent:
             if self.position[0]+1 > self.world.grid_size[0]-1:
                 # print(error)
                 return True
+
+
+class SimpleReflexAgent(Agent):
+    '''
+    This reflex agent has no memory, no state and can only sense the present
+    square. It can sense the value of dirt present in and also if any of the
+    boundary edges are walls.
+    It contains functions for moving aroud cleaning the world.
+    '''
 
     def perform_action(self, action):
         '''
@@ -190,6 +198,7 @@ def main():
     pos, moves, grid, dirt = read_file('environ.txt')
 
     agent = SimpleReflexAgent(pos, moves, grid, dirt)
+
     agent.clean_grid()
 
 
