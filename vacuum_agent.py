@@ -1,6 +1,7 @@
 # This file contains the program for a vacuum agent in a continuum vacuum world
 
 import random
+random.seed(2)
 
 
 class ContinuumWorld:
@@ -72,6 +73,7 @@ class Agent:
         self.position = position
         self.max_moves = 30
         self.world = ContinuumWorld(grid_size, dirt)
+        self.visited = set()
 
     def crosses_boundary(self, step):
         '''
@@ -120,30 +122,7 @@ class Agent:
         if action == 'S':
             self.score += self.world.dirt[self.position[0]][self.position[1]]
             self.world.dirt[self.position[0]][self.position[1]] = 0
-
-    def get_max_neighbor(self):
-        '''
-        This function checks which neighboring tile of agent has maximum dirt.
-
-        Return:
-            direction in which maximum dirt is present, 'R', 'L', 'U' or 'D'
-        '''
-        neighbor = {}
-        y = self.position[0]
-        x = self.position[1]
-        if not self.crosses_boundary('R'):
-            neighbor['R'] = self.world.dirt[y][x+1]
-        if not self.crosses_boundary('L'):
-            neighbor['L'] = self.world.dirt[y][x-1]
-        if not self.crosses_boundary('U'):
-            neighbor['U'] = self.world.dirt[y-1][x]
-        if not self.crosses_boundary('D'):
-            neighbor['D'] = self.world.dirt[y+1][x]
-
-        keys = list(neighbor.keys())
-        random.shuffle(keys)
-        neighbor = dict([(key, neighbor[key]) for key in keys])
-        return max(neighbor, key=neighbor.get)
+        self.visited.add((self.position[0], self.position[1]))
 
 
 class SimpleReflexAgent(Agent):
@@ -179,7 +158,7 @@ class SimpleReflexAgent(Agent):
             self.world.print_dirt(self, self.position)
 
 
-class GreedyReflexAgent(Agent):
+class GreedyAgent(Agent):
     '''
     This reflex agent has no memory, no state and can sense its
     neighboring tiles. It can sense the value of dirt present in and also if
@@ -205,6 +184,108 @@ class GreedyReflexAgent(Agent):
 
             # if counter % 5 == 0:
             self.world.print_dirt(self, self.position)
+
+    def get_max_neighbor(self):
+        '''
+        This function checks which neighboring tile of agent has maximum dirt.
+
+        Return:
+            direction in which maximum dirt is present, 'R', 'L', 'U' or 'D'
+        '''
+        neighbor = {}
+        y = self.position[0]
+        x = self.position[1]
+        if not self.crosses_boundary('R'):
+            neighbor['R'] = self.world.dirt[y][x+1]
+        if not self.crosses_boundary('L'):
+            neighbor['L'] = self.world.dirt[y][x-1]
+        if not self.crosses_boundary('U'):
+            neighbor['U'] = self.world.dirt[y-1][x]
+        if not self.crosses_boundary('D'):
+            neighbor['D'] = self.world.dirt[y+1][x]
+
+        keys = list(neighbor.keys())
+        random.shuffle(keys)
+        neighbor = dict([(key, neighbor[key]) for key in keys])
+        return max(neighbor, key=neighbor.get)
+
+
+class StateAgent(Agent):
+    '''
+    This reflex agent has memory, state and can sense its neighboring tiles.
+    It can sense the value of dirt present in and also if any of the boundary
+    edges are walls.
+    It contains functions for moving aroud cleaning the world.
+    '''
+
+    def clean_grid(self):
+        '''
+        This function is to tell the agent to move around and clean the tiles.
+        '''
+        counter = 0
+        for i in range(self.max_moves):
+            counter += 1
+            if self.world.dirt[self.position[0]][self.position[1]] > 0:
+                step = 'S'
+            else:
+                step = self.get_best_neighbor()
+
+            self.perform_action(step)
+            # print("Step number:", counter)
+            print(step, round(self.score, 5))
+            print(self.visited)
+
+            # if counter % 5 == 0:
+            self.world.print_dirt(self, self.position)
+
+    def get_best_neighbor(self):
+        '''
+        This function checks which neighboring tile of agent has maximum dirt.
+
+        Return:
+            direction in which maximum dirt is present, 'R', 'L', 'U' or 'D'
+        '''
+        neighbor = {}
+        y = self.position[0]
+        x = self.position[1]
+        Y = self.world.grid_size[0]
+        X = self.world.grid_size[1]
+        if not self.crosses_boundary('R') and (y, x+1) not in self.visited:
+            if Y/2 != y and X != x+1:
+                neighbor['R'] = self.world.dirt[y][x+1] \
+                                + 1/(Y/2 - y) + 1/(X - x+1)
+            else:
+                neighbor['R'] = self.world.dirt[y][x+1]
+        if not self.crosses_boundary('L') and (y, x-1) not in self.visited:
+            if Y/2 != y and X != x-1:
+                neighbor['L'] = self.world.dirt[y][x-1] \
+                                + 1/(Y/2 - y) + 1/(X/2 - x-1)
+            else:
+                neighbor['L'] = self.world.dirt[y][x-1]
+        if not self.crosses_boundary('U') and (y-1, x) not in self.visited:
+            if Y/2 != y-1 and X != x:
+                neighbor['U'] = self.world.dirt[y-1][x] \
+                                + 1/(Y/2 - y-1) + 1/(X/2 - x)
+            else:
+                neighbor['U'] = self.world.dirt[y-1][x]
+        if not self.crosses_boundary('D') and (y+1, x) not in self.visited:
+            if Y/2 != y-1 and X != x:
+                neighbor['D'] = self.world.dirt[y+1][x] \
+                                + 1/(Y/2 - y-1) + 1/(X/2 - x)
+            else:
+                neighbor['U'] = self.world.dirt[y-1][x]
+        else:
+            while(True):
+                step = random.choice(['R', 'L', 'U', 'D'])
+                if self.crosses_boundary(step):
+                    continue
+                else:
+                    break
+            return step
+        keys = list(neighbor.keys())
+        random.shuffle(keys)
+        neighbor = dict([(key, neighbor[key]) for key in keys])
+        return max(neighbor, key=neighbor.get)
 
 
 def read_file(text_file):
@@ -251,8 +332,9 @@ def main():
 
     pos, moves, grid, dirt = read_file('environ.txt')
 
-    agent = SimpleReflexAgent(pos, moves, grid, dirt)
-    # agent = GreedyReflexAgent(pos, moves, grid, dirt)
+    # agent = SimpleReflexAgent(pos, moves, grid, dirt)
+    # agent = GreedyAgent(pos, moves, grid, dirt)
+    agent = StateAgent(pos, moves, grid, dirt)
 
     agent.clean_grid()
 
