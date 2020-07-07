@@ -52,7 +52,9 @@ class ContinuumWorld:
 class Agent:
     '''
     This class is for the basic description of the vacuum agent.
-    It contains functions for verifying that it does not cross boundary.
+    It contains functions for verifying that it does not cross boundary,
+    performing a moving or sucking action, and getting neighbor with maximum
+    dirt.
     '''
 
     def __init__(self, position=[0, 0], max_moves=30, grid_size=0, dirt=0):
@@ -98,15 +100,6 @@ class Agent:
                 # print(error)
                 return True
 
-
-class SimpleReflexAgent(Agent):
-    '''
-    This reflex agent has no memory, no state and can only sense the present
-    square. It can sense the value of dirt present in and also if any of the
-    boundary edges are walls.
-    It contains functions for moving aroud cleaning the world.
-    '''
-
     def perform_action(self, action):
         '''
         This function will change the position of the agent when movement
@@ -127,6 +120,39 @@ class SimpleReflexAgent(Agent):
         if action == 'S':
             self.score += self.world.dirt[self.position[0]][self.position[1]]
             self.world.dirt[self.position[0]][self.position[1]] = 0
+
+    def get_max_neighbor(self):
+        '''
+        This function checks which neighboring tile of agent has maximum dirt.
+
+        Return:
+            direction in which maximum dirt is present, 'R', 'L', 'U' or 'D'
+        '''
+        neighbor = {}
+        y = self.position[0]
+        x = self.position[1]
+        if not self.crosses_boundary('R'):
+            neighbor['R'] = self.world.dirt[y][x+1]
+        if not self.crosses_boundary('L'):
+            neighbor['L'] = self.world.dirt[y][x-1]
+        if not self.crosses_boundary('U'):
+            neighbor['U'] = self.world.dirt[y-1][x]
+        if not self.crosses_boundary('D'):
+            neighbor['D'] = self.world.dirt[y+1][x]
+
+        keys = list(neighbor.keys())
+        random.shuffle(keys)
+        neighbor = dict([(key, neighbor[key]) for key in keys])
+        return max(neighbor, key=neighbor.get)
+
+
+class SimpleReflexAgent(Agent):
+    '''
+    This reflex agent has no memory, no state and can only sense the present
+    tile. It can sense the value of dirt present in and also if any of the
+    boundary edges are walls.
+    It contains functions for moving aroud cleaning the world.
+    '''
 
     def clean_grid(self):
         '''
@@ -149,8 +175,36 @@ class SimpleReflexAgent(Agent):
             # print("Step number:", counter)
             print(step, round(self.score, 5))
 
-            if counter % 5 == 0:
-                self.world.print_dirt(self, self.position)
+            # if counter % 5 == 0:
+            self.world.print_dirt(self, self.position)
+
+
+class GreedyReflexAgent(Agent):
+    '''
+    This reflex agent has no memory, no state and can sense its
+    neighboring tiles. It can sense the value of dirt present in and also if
+    any of the boundary edges are walls.
+    It contains functions for moving aroud cleaning the world.
+    '''
+
+    def clean_grid(self):
+        '''
+        This function is to tell the agent to move around and clean the tiles.
+        '''
+        counter = 0
+        for i in range(self.max_moves):
+            counter += 1
+            if self.world.dirt[self.position[0]][self.position[1]] > 0:
+                step = 'S'
+            else:
+                step = self.get_max_neighbor()
+
+            self.perform_action(step)
+            # print("Step number:", counter)
+            print(step, round(self.score, 5))
+
+            # if counter % 5 == 0:
+            self.world.print_dirt(self, self.position)
 
 
 def read_file(text_file):
@@ -198,6 +252,7 @@ def main():
     pos, moves, grid, dirt = read_file('environ.txt')
 
     agent = SimpleReflexAgent(pos, moves, grid, dirt)
+    # agent = GreedyReflexAgent(pos, moves, grid, dirt)
 
     agent.clean_grid()
 
