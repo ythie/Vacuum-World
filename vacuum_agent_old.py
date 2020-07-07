@@ -12,10 +12,12 @@ class ContinuumWorld:
     def __init__(self, grid_size=[2, 2], dirt=[[1, 1], [1, 1]]):
         '''
         This function will initialize an object for the ContinuumWorld class.
+
         Arguments:
             grid_size - a list [x,y] with size of the world
             dirt - a list of lists representing the entire world with the dirt
-            value of each tile
+            value
+                of each tile
         '''
         self.grid_size = grid_size
         self.dirt = dirt
@@ -24,6 +26,7 @@ class ContinuumWorld:
         '''
         This function prints the current world representation with dirt in each
         tile
+
         Arguments:
             agent - the vacuum agent object
             position - the current position of agent
@@ -57,6 +60,7 @@ class Agent:
     def __init__(self, position=[0, 0], max_moves=30, grid_size=0, dirt=0):
         '''
         This function will initialize an object for the SimpleReflexAgent class
+
         Arguments:
             position - the initial position of agent
             max_moves - the maximum number of moves agent is allowed to take
@@ -66,15 +70,17 @@ class Agent:
         '''
         self.score = 0
         self.position = position
-        self.max_moves = max_moves
+        self.max_moves = 30
         self.world = ContinuumWorld(grid_size, dirt)
         self.visited = set()
 
     def crosses_boundary(self, step):
         '''
         This function checks if step taken by the agent will cross boundary.
+
         Arguments:
             step - any one from 'R', 'L', 'U' and 'D'
+
         Returns: True if boundary will be crossed
         '''
         # error = "Cannot go beyond! Change direction!\n"
@@ -95,12 +101,11 @@ class Agent:
                 # print(error)
                 return True
 
-        return False
-
     def perform_action(self, action):
         '''
         This function will change the position of the agent when movement
         actions are performed, and will change the tile to clean on suck action
+
         Arguments:
             agent - the vacuum agent object
             action - the action performed
@@ -116,13 +121,31 @@ class Agent:
         if action == 'S':
             self.score += self.world.dirt[self.position[0]][self.position[1]]
             self.world.dirt[self.position[0]][self.position[1]] = 0
-
         self.visited.add((self.position[0], self.position[1]))
 
-    def print_status(self, step, counter):
-        self.world.print_dirt(self, self.position)
-        if counter % 30 == 0:
-            print(step, round(self.score, 5))
+    def get_max_neighbor(self):
+        '''
+        This function checks which neighboring tile of agent has maximum dirt.
+
+        Return:
+            direction in which maximum dirt is present, 'R', 'L', 'U' or 'D'
+        '''
+        neighbor = {}
+        y = self.position[0]
+        x = self.position[1]
+        if not self.crosses_boundary('R'):
+            neighbor['R'] = self.world.dirt[y][x+1]
+        if not self.crosses_boundary('L'):
+            neighbor['L'] = self.world.dirt[y][x-1]
+        if not self.crosses_boundary('U'):
+            neighbor['U'] = self.world.dirt[y-1][x]
+        if not self.crosses_boundary('D'):
+            neighbor['D'] = self.world.dirt[y+1][x]
+
+        keys = list(neighbor.keys())
+        random.shuffle(keys)
+        neighbor = dict([(key, neighbor[key]) for key in keys])
+        return max(neighbor, key=neighbor.get)
 
 
 class SimpleReflexAgent(Agent):
@@ -152,7 +175,10 @@ class SimpleReflexAgent(Agent):
 
             self.perform_action(step)
             # print("Step number:", counter)
-            self.print_status(step, counter)
+            print(step, round(self.score, 5))
+
+            # if counter % 5 == 0:
+            # self.world.print_dirt(self, self.position)
 
 
 class GreedyAgent(Agent):
@@ -177,30 +203,10 @@ class GreedyAgent(Agent):
 
             self.perform_action(step)
             # print("Step number:", counter)
-            self.print_status(step, counter)
+            print(step, round(self.score, 5))
 
-    def get_max_neighbor(self):
-        '''
-        This function checks which neighboring tile of agent has maximum dirt.
-        Return:
-            direction in which maximum dirt is present, 'R', 'L', 'U' or 'D'
-        '''
-        neighbor = {}
-        y = self.position[0]
-        x = self.position[1]
-        if not self.crosses_boundary('R'):
-            neighbor['R'] = self.world.dirt[y][x+1]
-        if not self.crosses_boundary('L'):
-            neighbor['L'] = self.world.dirt[y][x-1]
-        if not self.crosses_boundary('U'):
-            neighbor['U'] = self.world.dirt[y-1][x]
-        if not self.crosses_boundary('D'):
-            neighbor['D'] = self.world.dirt[y+1][x]
-
-        keys = list(neighbor.keys())
-        random.shuffle(keys)
-        neighbor = dict([(key, neighbor[key]) for key in keys])
-        return max(neighbor, key=neighbor.get)
+            # if counter % 5 == 0:
+            # self.world.print_dirt(self, self.position)
 
 
 class StateAgent(Agent):
@@ -218,14 +224,18 @@ class StateAgent(Agent):
         counter = 0
         for i in range(self.max_moves):
             counter += 1
-            if self.world.dirt[self.position[0]][self.position[1]] > 0:
+            if self.world.dirt[self.position[0]][self.position[1]] > 0.1:
                 step = 'S'
             else:
                 step = self.get_best_neighbor()
 
             self.perform_action(step)
             # print("Step number:", counter)
-            self.print_status(step, counter)
+            print(step, round(self.score, 5))
+            # print(self.checked)
+
+            # if counter % 5 == 0:
+            # self.world.print_dirt(self, self.position)
 
     def get_best_neighbor(self):
         '''
@@ -261,18 +271,23 @@ class StateAgent(Agent):
                     break
             return step
 
-        keys = list(neighbor.keys())
-        random.shuffle(keys)
-        neighbor = dict([(key, neighbor[key]) for key in keys])
-        return max(neighbor, key=neighbor.get)
+        itemMaxValue = max(neighbor.items(), key=lambda x: x[1])
+        listOfKeys = list()
+
+        for key, value in neighbor.items():
+            if value == itemMaxValue[1]:
+                listOfKeys.append(key)
+        return random.choice(listOfKeys)
 
 
 def read_file(text_file):
     '''
     This function reads the 'environ.txt' file to retrieve initital state of
     world and agent.
+
     Arguments:
         text_file - the text file to fetch the information from
+
     Returns:
         pos - the initial position of agent
         moves - the maximum number of moves agent is allowed to take
@@ -307,24 +322,24 @@ def read_file(text_file):
 
 def main():
 
-    seed = 1
+    seed = 5
     pos, moves, grid, dirt = read_file('environ.txt')
     random.seed(seed)
-    reflex_agent = SimpleReflexAgent(pos, moves, grid, dirt)
-    print("**Simple Reflex Agent**\n")
-    reflex_agent.clean_grid()
+    agent_1 = SimpleReflexAgent(pos, moves, grid, dirt)
+    print("Simple")
+    agent_1.clean_grid()
 
     pos, moves, grid, dirt = read_file('environ.txt')
     random.seed(seed)
-    greedy_agent = GreedyAgent(pos, moves, grid, dirt)
-    print("\n**Greedy Agent**\n")
-    greedy_agent.clean_grid()
+    agent_2 = GreedyAgent(pos, moves, grid, dirt)
+    print("Greedy")
+    agent_2.clean_grid()
 
     pos, moves, grid, dirt = read_file('environ.txt')
     random.seed(seed)
-    state_agent = StateAgent(pos, moves, grid, dirt)
-    print("\n**State Agent**\n")
-    state_agent.clean_grid()
+    agent_3 = StateAgent(pos, moves, grid, dirt)
+    print("State")
+    agent_3.clean_grid()
 
 
 if __name__ == "__main__":

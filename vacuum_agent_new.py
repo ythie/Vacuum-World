@@ -15,7 +15,8 @@ class ContinuumWorld:
         Arguments:
             grid_size - a list [x,y] with size of the world
             dirt - a list of lists representing the entire world with the dirt
-            value of each tile
+            value
+                of each tile
         '''
         self.grid_size = grid_size
         self.dirt = dirt
@@ -45,6 +46,20 @@ class ContinuumWorld:
             print(*row, sep=", ")
         print()
 
+    @classmethod
+    def generate_world(cls):
+
+        grid_size = [8,5]
+        dirt = [[0 for _ in range(grid_size[1])] for _ in range(grid_size[0])]
+
+        for i in range(grid_size[0]):
+            for j in range(grid_size[1]):
+                if random.random()>0.5:
+                    dirt[i][j]=round(random.random(),2)
+                else:
+                    dirt[i][j]=0.0
+
+        return cls(grid_size,dirt)
 
 class Agent:
     '''
@@ -119,12 +134,6 @@ class Agent:
 
         self.visited.add((self.position[0], self.position[1]))
 
-    def print_status(self, step, counter):
-        self.world.print_dirt(self, self.position)
-        if counter % 30 == 0:
-            print(step, round(self.score, 5))
-
-
 class SimpleReflexAgent(Agent):
     '''
     This reflex agent has no memory, no state and can only sense the present
@@ -152,8 +161,10 @@ class SimpleReflexAgent(Agent):
 
             self.perform_action(step)
             # print("Step number:", counter)
-            self.print_status(step, counter)
+            print(step, round(self.score, 5))
 
+            if counter % 5 == 0:
+            self.world.print_dirt(self, self.position)
 
 class GreedyAgent(Agent):
     '''
@@ -177,7 +188,10 @@ class GreedyAgent(Agent):
 
             self.perform_action(step)
             # print("Step number:", counter)
-            self.print_status(step, counter)
+            print(step, round(self.score, 5))
+
+            if counter % 5 == 0:
+            self.world.print_dirt(self, self.position)
 
     def get_max_neighbor(self):
         '''
@@ -197,11 +211,13 @@ class GreedyAgent(Agent):
         if not self.crosses_boundary('D'):
             neighbor['D'] = self.world.dirt[y+1][x]
 
-        keys = list(neighbor.keys())
-        random.shuffle(keys)
-        neighbor = dict([(key, neighbor[key]) for key in keys])
-        return max(neighbor, key=neighbor.get)
+        itemMaxValue = max(neighbor.items(), key=lambda x: x[1])
+        listOfKeys = list()
 
+        for key, value in neighbor.items():
+            if value == itemMaxValue[1]:
+                listOfKeys.append(key)
+        return random.choice(listOfKeys)
 
 class StateAgent(Agent):
     '''
@@ -225,7 +241,11 @@ class StateAgent(Agent):
 
             self.perform_action(step)
             # print("Step number:", counter)
-            self.print_status(step, counter)
+            print(step, round(self.score, 5))
+            # print(self.visited)
+
+            if counter % 5 == 0:
+            self.world.print_dirt(self, self.position)
 
     def get_best_neighbor(self):
         '''
@@ -239,18 +259,18 @@ class StateAgent(Agent):
         Y = self.world.grid_size[0]
         X = self.world.grid_size[1]
 
-        flag = True
+        flag=True
         if (not self.crosses_boundary('R')) and ((y, x+1) not in self.visited):
-            flag = False
+            flag=False
             neighbor['R'] = self.world.dirt[y][x+1]
         if (not self.crosses_boundary('L')) and ((y, x-1) not in self.visited):
-            flag = False
+            flag=False
             neighbor['L'] = self.world.dirt[y][x-1]
         if (not self.crosses_boundary('U')) and ((y-1, x) not in self.visited):
-            flag = False
+            flag=False
             neighbor['U'] = self.world.dirt[y-1][x]
         if (not self.crosses_boundary('D')) and ((y+1, x) not in self.visited):
-            flag = False
+            flag=False
             neighbor['D'] = self.world.dirt[y+1][x]
         if flag:
             while(True):
@@ -261,10 +281,13 @@ class StateAgent(Agent):
                     break
             return step
 
-        keys = list(neighbor.keys())
-        random.shuffle(keys)
-        neighbor = dict([(key, neighbor[key]) for key in keys])
-        return max(neighbor, key=neighbor.get)
+        itemMaxValue = max(neighbor.items(), key=lambda x: x[1])
+        listOfKeys = list()
+
+        for key, value in neighbor.items():
+            if value == itemMaxValue[1]:
+                listOfKeys.append(key)
+        return random.choice(listOfKeys)
 
 
 def read_file(text_file):
@@ -305,27 +328,60 @@ def read_file(text_file):
     return pos, moves, grid, dirt
 
 
+def test():
+
+    random.seed(1)
+    reflex_total_score=0
+    for i in range(1):
+        #pos, moves, grid, dirt = read_file('environ.txt')
+        random_world = ContinuumWorld.generate_world()
+        reflex_agent = SimpleReflexAgent([2,4], 30, random_world.grid_size, random_world.dirt)
+        reflex_agent.clean_grid()
+        reflex_total_score+=reflex_agent.score
+
+    random.seed(1)
+    greedy_total_score=0
+    for i in range(1):
+        #pos, moves, grid, dirt = read_file('environ.txt')
+        random_world = ContinuumWorld.generate_world()
+        greedy_agent = GreedyAgent([2,4], 30, random_world.grid_size, random_world.dirt)
+        greedy_agent.clean_grid()
+        greedy_total_score+=greedy_agent.score
+
+    random.seed(1)
+    state_total_score=0
+    for i in range(1):
+        #pos, moves, grid, dirt = read_file('environ.txt')
+        random_world = ContinuumWorld.generate_world()
+        state_agent = StateAgent([2,4], 30, random_world.grid_size, random_world.dirt)
+        state_agent.clean_grid()
+        state_total_score+=state_agent.score
+
+    print(reflex_total_score)
+    print(greedy_total_score)
+    print(state_total_score)
+
 def main():
 
-    seed = 1
+    random.seed(2)
     pos, moves, grid, dirt = read_file('environ.txt')
-    random.seed(seed)
     reflex_agent = SimpleReflexAgent(pos, moves, grid, dirt)
-    print("**Simple Reflex Agent**\n")
     reflex_agent.clean_grid()
 
+    random.seed(2)
     pos, moves, grid, dirt = read_file('environ.txt')
-    random.seed(seed)
     greedy_agent = GreedyAgent(pos, moves, grid, dirt)
-    print("\n**Greedy Agent**\n")
     greedy_agent.clean_grid()
 
+    random.seed(2)
     pos, moves, grid, dirt = read_file('environ.txt')
-    random.seed(seed)
     state_agent = StateAgent(pos, moves, grid, dirt)
-    print("\n**State Agent**\n")
     state_agent.clean_grid()
+
+    print(reflex_agent.score)
+    print(greedy_agent.score)
+    print(state_agent.score)
 
 
 if __name__ == "__main__":
-    main()
+    test()
