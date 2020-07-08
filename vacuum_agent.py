@@ -69,6 +69,7 @@ class Agent:
         self.max_moves = max_moves
         self.world = ContinuumWorld(grid_size, dirt)
         self.visited = set()
+        self.visited.add((self.position[0], self.position[1]))
 
     def crosses_boundary(self, step):
         '''
@@ -120,9 +121,10 @@ class Agent:
         self.visited.add((self.position[0], self.position[1]))
 
     def print_status(self, step, counter):
-        self.world.print_dirt(self, self.position)
-        if counter % 30 == 0:
-            print(step, round(self.score, 5))
+        print(step, round(self.score, 5))
+        # print(self.visited)
+        if counter % 5 == 0:
+            self.world.print_dirt(self, self.position)
 
 
 class SimpleReflexAgent(Agent):
@@ -229,15 +231,14 @@ class StateAgent(Agent):
 
     def get_best_neighbor(self):
         '''
-        This function checks which neighboring tile of agent has maximum dirt.
+        This function checks which neighboring tile of agent has maximum dirt
+        and if that tile has been visited before.
         Return:
             direction in which maximum dirt is present, 'R', 'L', 'U' or 'D'
         '''
         neighbor = {}
         y = self.position[0]
         x = self.position[1]
-        Y = self.world.grid_size[0]
-        X = self.world.grid_size[1]
 
         flag = True
         if (not self.crosses_boundary('R')) and ((y, x+1) not in self.visited):
@@ -308,19 +309,23 @@ def read_file(text_file):
 def main():
 
     seed = 1
+
     pos, moves, grid, dirt = read_file('environ.txt')
+    # pos = [6, 0]
     random.seed(seed)
     reflex_agent = SimpleReflexAgent(pos, moves, grid, dirt)
     print("**Simple Reflex Agent**\n")
     reflex_agent.clean_grid()
 
     pos, moves, grid, dirt = read_file('environ.txt')
+    # pos = [6, 0]
     random.seed(seed)
     greedy_agent = GreedyAgent(pos, moves, grid, dirt)
     print("\n**Greedy Agent**\n")
     greedy_agent.clean_grid()
 
     pos, moves, grid, dirt = read_file('environ.txt')
+    # pos = [6, 0]
     random.seed(seed)
     state_agent = StateAgent(pos, moves, grid, dirt)
     print("\n**State Agent**\n")
