@@ -1,4 +1,4 @@
-<h2>Vacuum Agent in a Continuum World</h2>
+# Vacuum Agent in a Continuum World
 <h4>Created as part of course CS5100-Foundations of Artificial Intelligence at Northeastern University</h4>
 
 <div>
